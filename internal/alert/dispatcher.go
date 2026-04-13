@@ -56,6 +56,16 @@ func (d *Dispatcher) DispatchAll(leases []LeaseInfo) error {
 	return lastErr
 }
 
+// DispatchOne evaluates a single LeaseInfo and sends an alert if its level is
+// not INFO. It returns an error if any notifier fails.
+func (d *Dispatcher) DispatchOne(l LeaseInfo) error {
+	a := Build(l.LeaseID, l.ExpiresIn, d.WarnMins, d.CritMins)
+	if a.Level == LevelInfo {
+		return nil
+	}
+	return d.sendToAll(l.LeaseID, a)
+}
+
 // sendToAll delivers an alert to every registered notifier, logging errors as
 // they occur. It returns the last error encountered, or nil if all succeeded.
 func (d *Dispatcher) sendToAll(leaseID string, a Alert) error {
