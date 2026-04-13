@@ -1,19 +1,22 @@
-// Package notify provides integrations for delivering VaultWatch alerts
-// to external channels such as Slack and generic HTTP webhooks.
+// Package notify provides implementations of the alert.Notifier interface
+// for delivering VaultWatch lease expiration alerts through various channels.
 //
-// Each notifier in this package implements the alert.Notifier interface,
-// allowing it to be registered with the alert.Dispatcher.
+// Supported notifiers:
 //
-// Available notifiers:
+//   - WebhookNotifier: sends alerts as JSON payloads to an HTTP endpoint
+//   - SlackNotifier:   sends formatted messages to a Slack incoming webhook
+//   - EmailNotifier:   delivers alerts via SMTP email
+//   - PagerDutyNotifier: triggers PagerDuty incidents via Events API v2
 //
-//   - WebhookNotifier: sends alerts as JSON payloads to any HTTP endpoint.
-//   - SlackNotifier:   sends formatted messages to a Slack incoming webhook.
+// Each notifier is constructed with channel-specific configuration and
+// implements the Send(alert.Alert) error method. Notifiers are registered
+// with an alert.Dispatcher which handles severity filtering and fan-out.
 //
 // Example usage:
 //
-//	slack, err := notify.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK_URL"), 0)
+//	pd, err := notify.NewPagerDutyNotifier(os.Getenv("PD_KEY"), 10*time.Second)
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	dispatcher.Register(slack)
+//	dispatcher.Register(pd)
 package notify
