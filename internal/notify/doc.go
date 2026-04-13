@@ -1,19 +1,19 @@
-// Package notify provides additional notification backends for vaultwatch alerts.
+// Package notify provides integrations for delivering VaultWatch alerts
+// to external channels such as Slack and generic HTTP webhooks.
 //
-// Backends in this package complement the console notifier in the alert package
-// by delivering alerts to external systems.
+// Each notifier in this package implements the alert.Notifier interface,
+// allowing it to be registered with the alert.Dispatcher.
 //
 // Available notifiers:
 //
-//   - WebhookNotifier: POSTs a JSON payload to a configurable HTTP endpoint.
-//     Suitable for integrating with Slack incoming webhooks, PagerDuty, or any
-//     custom HTTP receiver.
+//   - WebhookNotifier: sends alerts as JSON payloads to any HTTP endpoint.
+//   - SlackNotifier:   sends formatted messages to a Slack incoming webhook.
 //
-// All notifiers satisfy the alert.Notifier interface and can be registered with
-// an alert.Dispatcher to participate in the standard dispatch pipeline.
+// Example usage:
 //
-// Example:
-//
-//	wh := notify.NewWebhookNotifier("https://hooks.example.com/vault", 10*time.Second)
-//	dispatcher.Register(wh)
+//	slack, err := notify.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK_URL"), 0)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	dispatcher.Register(slack)
 package notify
