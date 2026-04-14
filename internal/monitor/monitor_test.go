@@ -42,16 +42,21 @@ func defaultCfg() *config.Config {
 	}
 }
 
+// newTestMonitor is a helper that wires up a monitor with a stub checker and
+// recording notifier, returning all three for use in tests.
+func newTestMonitor(checker *stubChecker) (*monitor.Monitor, *recordingNotifier) {
+	notifier := &recordingNotifier{}
+	dispatcher := alert.NewDispatcher([]alert.Notifier{notifier})
+	m := monitor.New(checker, dispatcher, defaultCfg())
+	return m, notifier
+}
+
 func TestMonitor_RunOnce_DispatchesAlerts(t *testing.T) {
 	leases := []vault.LeaseInfo{
 		{LeaseID: "secret/data/db#abc", TTL: 10 * time.Hour},
 	}
 	checker := &stubChecker{leases: leases}
-	notifier := &recordingNotifier{}
-	dispatcher := alert.NewDispatcher([]alert.Notifier{notifier})
-	cfg := defaultCfg()
-
-	m := monitor.New(checker, dispatcher, cfg)
+	m, notifier := newTestMonitor(checker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Millisecond)
 	defer cancel()
@@ -68,10 +73,7 @@ func TestMonitor_RunOnce_DispatchesAlerts(t *testing.T) {
 
 func TestMonitor_RunOnce_CheckerError_NoDispatch(t *testing.T) {
 	checker := &stubChecker{err: errors.New("vault unavailable")}
-	notifier := &recordingNotifier{}
-	dispatcher := alert.NewDispatcher([]alert.Notifier{notifier})
-
-	m := monitor.New(checker, dispatcher, defaultCfg())
+	m, notifier := newTestMonitor(checker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
 	defer cancel()
@@ -85,10 +87,7 @@ func TestMonitor_RunOnce_CheckerError_NoDispatch(t *testing.T) {
 
 func TestMonitor_RunOnce_NoLeases_NoDispatch(t *testing.T) {
 	checker := &stubChecker{leases: nil}
-	notifier := &recordingNotifier{}
-	dispatcher := alert.NewDispatcher([]alert.Notifier{notifier})
-
-	m := monitor.New(checker, dispatcher, defaultCfg())
+	m, notifier := newTestMonitor(checker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
 	defer cancel()
