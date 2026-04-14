@@ -33,6 +33,16 @@ func TestCapture_SetsTimestampAndEntries(t *testing.T) {
 	}
 }
 
+func TestCapture_EmptyAlerts(t *testing.T) {
+	snap := snapshot.Capture([]alert.Alert{})
+	if len(snap.Entries) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(snap.Entries))
+	}
+	if snap.TakenAt.IsZero() {
+		t.Error("expected TakenAt to be set even for empty alert list")
+	}
+}
+
 func TestStore_SaveAndLatest(t *testing.T) {
 	store := snapshot.NewStore()
 	if store.Latest() != nil {
