@@ -21,6 +21,11 @@ type Summary struct {
 	Alerts      []alert.Alert
 }
 
+// HasIssues returns true if the summary contains any critical or warning alerts.
+func (s Summary) HasIssues() bool {
+	return s.Critical > 0 || s.Warning > 0
+}
+
 // Builder constructs a Summary from a slice of alerts.
 type Builder struct {
 	out io.Writer
