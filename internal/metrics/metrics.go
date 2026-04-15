@@ -19,6 +19,9 @@ func (c *Counter) Add(n uint64) { atomic.AddUint64(&c.v, n) }
 // Value returns the current counter value.
 func (c *Counter) Value() uint64 { return atomic.LoadUint64(&c.v) }
 
+// Reset sets the counter back to zero.
+func (c *Counter) Reset() { atomic.StoreUint64(&c.v, 0) }
+
 // Gauge is a value that can go up or down.
 type Gauge struct {
 	mu sync.Mutex
@@ -90,4 +93,13 @@ func (r *Registry) Snapshot() map[string]float64 {
 		out[k] = g.Value()
 	}
 	return out
+}
+
+// Reset clears all counter values back to zero. Gauge values are unaffected.
+func (r *Registry) Reset() {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, c := range r.counters {
+		c.Reset()
+	}
 }
