@@ -54,7 +54,7 @@ func TestWarmer_Warm_SourceError(t *testing.T) {
 	src := &stubSource{err: errors.New("vault unavailable")}
 	w := cache.NewWarmer(store, src, &stubLookup{})
 
-	if err := w.Warm(context.Background()); err == nil {
+	if err := w. == nil {
 		t.Fatal("expected error from source, got nil")
 	}
 }
@@ -86,5 +86,19 @@ func TestWarmer_WarmWithTimeout(t *testing.T) {
 	}
 	if store.Len() != 1 {
 		t.Errorf("store.Len() = %d, want 1", store.Len())
+	}
+}
+
+func TestWarmer_Warm_EmptySource(t *testing.T) {
+	// Warming with no lease IDs should succeed and leave the store empty.
+	store := cache.New(5 * time.Minute)
+	src := &stubSource{ids: []string{}}
+	w := cache.NewWarmer(store, src, &stubLookup{})
+
+	if err := w.Warm(context.Background()); err != nil {
+		t.Fatalf("Warm() error on empty source: %v", err)
+	}
+	if store.Len() != 0 {
+		t.Errorf("store.Len() = %d, want 0", store.Len())
 	}
 }
