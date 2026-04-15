@@ -101,3 +101,35 @@ func TestHandler_Mux_RegistersRoute(t *testing.T) {
 		t.Errorf("expected 200 from mux, got %d", rr.Code)
 	}
 }
+
+func TestHTTPHandler_JSON_ContainsExpectedMetrics(t *testing.T) {
+	h := newTestHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/metrics?format=json", nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	var out map[string]interface{}
+	if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
+		t.Fatalf("expected valid JSON: %v", err)
+	}
+
+	metrics, ok := out["metrics"].([]interface{})
+	if !ok {
+		t.Fatalf("expected 'metrics' to be an array")
+	}
+
+	names := make(map[string]bool)
+	for _, m := range metrics {
+		if entry, ok := m.(map[string]interface{}); ok {
+			if name, ok := entry["name"].(string); ok {
+				names[name] = true
+			}
+		}
+	}
+
+	for _, expected := range []string{"requests_total", "active_leases"} {
+		if !names[expected] {
+			t.Errorf("expected metric %q in JSON output, got names: %v", expected, names)
+		}
+	}
+}
