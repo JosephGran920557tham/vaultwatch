@@ -80,3 +80,22 @@ func TestWait_CancelledContext(t *testing.T) {
 		t.Fatal("expected context cancellation error")
 	}
 }
+
+func TestNew_ValidConfig(t *testing.T) {
+	tests := []struct {
+		name  string
+		cfg   Config
+	}{
+		{"minimal burst", Config{Rate: 1, Burst: 0}},
+		{"high rate", Config{Rate: 1000, Burst: 500}},
+		{"fractional rate", Config{Rate: 0.5, Burst: 1}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := New(tt.cfg)
+			if err != nil {
+				t.Fatalf("unexpected error for config %+v: %v", tt.cfg, err)
+			}
+		})
+	}
+}
