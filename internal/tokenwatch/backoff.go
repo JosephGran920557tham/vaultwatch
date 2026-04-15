@@ -72,6 +72,18 @@ func (b *Backoff) Attempt() int {
 	return b.attempt
 }
 
+// Remaining returns the number of retries left, or -1 if MaxRetries is unlimited (0).
+func (b *Backoff) Remaining() int {
+	if b.cfg.MaxRetries == 0 {
+		return -1
+	}
+	rem := b.cfg.MaxRetries - b.attempt
+	if rem < 0 {
+		return 0
+	}
+	return rem
+}
+
 // errorf is a thin wrapper so the package avoids importing fmt at the top level.
 func errorf(msg string) error {
 	return &backoffError{msg: msg}
