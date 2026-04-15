@@ -66,3 +66,33 @@ func TestConsoleNotifier_Send(t *testing.T) {
 		t.Errorf("output missing lease ID: %s", out)
 	}
 }
+
+func TestConsoleNotifier_Send_AllLevels(t *testing.T) {
+	cases := []struct {
+		level   Level
+		label   string
+	}{
+		{LevelInfo, "INFO"},
+		{LevelWarning, "WARNING"},
+		{LevelCritical, "CRITICAL"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.label, func(t *testing.T) {
+			var buf bytes.Buffer
+			n := &ConsoleNotifier{Out: &buf}
+			a := Alert{
+				LeaseID:   "secret/test",
+				ExpiresIn: 10 * time.Minute,
+				Level:     tc.level,
+				Message:   "Lease expires in 10m0s",
+			}
+			if err := n.Send(a); err != nil {
+				t.Fatalf("Send() error: %v", err)
+			}
+			if !strings.Contains(buf.String(), tc.label) {
+				t.Errorf("output missing %s: %s", tc.label, buf.String())
+			}
+		})
+	}
+}
