@@ -58,3 +58,14 @@ func (b *BatchRunner) Run(ctx context.Context) []BatchResult {
 	wg.Wait()
 	return results
 }
+
+// Errors returns a slice of BatchResults that contain a non-nil error.
+func (b *BatchRunner) Errors(results []BatchResult) []BatchResult {
+	var failed []BatchResult
+	for _, r := range results {
+		if r.Err != nil {
+			failed = append(failed, r)
+		}
+	}
+	return failed
+}
