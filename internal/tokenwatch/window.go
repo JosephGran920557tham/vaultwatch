@@ -45,6 +45,18 @@ func NewWindow(cfg WindowConfig) (*Window, error) {
 	}, nil
 }
 
+// prune removes expired events for key and returns the remaining slice.
+// Must be called with w.mu held.
+func (w *Window) prune(key string, cutoff time.Time) []time.Time {
+	filtered := w.events[key][:0]
+	for _, t := range w.events[key] {
+		if t.After(cutoff) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
 // Allow records an event for key and returns true if the count is within the
 // configured MaxEvents for the sliding window. Expired events are pruned first.
 func (w *Window) Allow(key string) bool {
@@ -53,13 +65,7 @@ func (w *Window) Allow(key string) bool {
 
 	now := w.now()
 	cutoff := now.Add(-w.cfg.Size)
-
-	filtered := w.events[key][:0]
-	for _, t := range w.events[key] {
-		if t.After(cutoff) {
-			filtered = append(filtered, t)
-		}
-	}
+	filtered := w.prune(key, cutoff)
 
 	if len(filtered) >= w.cfg.MaxEvents {
 		w.events[key] = filtered
