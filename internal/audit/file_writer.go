@@ -21,12 +21,19 @@ func NewFileWriter(path string) (*FileWriter, error) {
 
 // Write implements io.Writer.
 func (fw *FileWriter) Write(p []byte) (int, error) {
-	return fw.f.Write(p)
+	n, err := fw.f.Write(p)
+	if err != nil {
+		return n, fmt.Errorf("audit: write to file %q: %w", fw.f.Name(), err)
+	}
+	return n, nil
 }
 
 // Close closes the underlying file.
 func (fw *FileWriter) Close() error {
-	return fw.f.Close()
+	if err := fw.f.Close(); err != nil {
+		return fmt.Errorf("audit: close file %q: %w", fw.f.Name(), err)
+	}
+	return nil
 }
 
 // Path returns the path of the underlying file.
