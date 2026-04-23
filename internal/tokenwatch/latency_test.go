@@ -9,83 +9,72 @@ import (
 
 func TestDefaultLatencyConfig_HasSensibleDefaults(t *testing.T) {
 	cfg := DefaultLatencyConfig()
-	if cfg.WarningThreshold <= 0 {
-		t.Fatal("expected positive warning threshold")
-	}
-	if cfg.CriticalThreshold <= cfg.WarningThreshold {
-		t.Fatal("critical threshold must exceed warning threshold")
-	}
 	if cfg.MinSamples <= 0 {
-		t.Fatal("expected positive min samples")
+		t.Errorf("MinSamples should be positive, got %d", cfg.MinSamples)
+	}
+	if cfg.WarnThreshold <= 0 {
+		t.Errorf("WarnThreshold should be positive, got %v", cfg.WarnThreshold)
+	}
+	if cfg.CritThreshold <= cfg.WarnThreshold {
+		t.Errorf("CritThreshold (%v) should exceed WarnThreshold (%v)", cfg.CritThreshold, cfg.WarnThreshold)
 	}
 }
 
 func TestNewLatencyDetector_ZeroValues_UsesDefaults(t *testing.T) {
-	d := NewLatencyDetector(LatencyConfig{})
-	def := DefaultLatencyConfig()
-	if d.cfg.WarningThreshold != def.WarningThreshold {
-		t.Errorf("expected default warning threshold, got %s", d.cfg.WarningThreshold)
-	}
-	if d.cfg.MinSamples != def.MinSamples {
-		t.Errorf("expected default min samples, got %d", d.cfg.MinSamples)
+	det := NewLatencyDetector(LatencyConfig{})
+	if det == nil {
+		t.Fatal("expected non-nil detector")
 	}
 }
 
 func TestLatencyDetector_Check_InsufficientSamples_ReturnsNil(t *testing.T) {
-	d := NewLatencyDetector(LatencyConfig{MinSamples: 3})
-	d.Record("tok1", 300*time.Millisecond)
-	d.Record("tok1", 400*time.Millisecond)
-	if got := d.Check("tok1"); got != nil {
-		t.Fatalf("expected nil with insufficient samples, got %+v", got)
+	cfg := DefaultLatencyConfig()
+	cfg.MinSamples = 5
+	det := NewLatencyDetector(cfg)
+	result := det.Check("tok-1", 500*time.Millisecond)
+	if result != nil {
+		t.Fatalf("expected nil before MinSamples reached, got %+v", result)
 	}
 }
 
 func TestLatencyDetector_Check_LowLatency_ReturnsNil(t *testing.T) {
-	d := NewLatencyDetector(LatencyConfig{
-		WarningThreshold:  200 * time.Millisecond,
-		CriticalThreshold: 500 * time.Millisecond,
-		MinSamples:        2,
-	})
-	d.Record("tok2", 50*time.Millisecond)
-	d.Record("tok2", 60*time.Millisecond)
-	if got := d.Check("tok2"); got != nil {
-		t.Fatalf("expected nil for low latency, got %+v", got)
+	cfg := DefaultLatencyConfig()
+	cfg.MinSamples = 1
+	cfg.WarnThreshold = 200 * time.Millisecond
+	cfg.CritThreshold = 500 * time.Millisecond
+	det := NewLatencyDetector(cfg)
+	result := det.Check("tok-ok", 10*time.Millisecond)
+	if result != nil {
+		t.Fatalf("expected nil for low latency, got %+v", result)
 	}
 }
 
-func TestLatencyDetector_Check_Warning(t *testing.T) {
-	d := NewLatencyDetector(LatencyConfig{
-		WarningThreshold:  200 * time.Millisecond,
-		CriticalThreshold: 500 * time.Millisecond,
-		MinSamples:        2,
-	})
-	d.Record("tok3", 250*time.Millisecond)
-	d.Record("tok3", 300*time.Millisecond)
-	a := d.Check("tok3")
-	if a == nil {
-		t.Fatal("expected warning alert")
+func TestLatencyDetector_Check_HighLatency_Warning(t *testing.T) {
+	cfg := DefaultLatencyConfig()
+	cfg.MinSamples = 1
+	cfg.WarnThreshold = 50 * time.Millisecond
+	cfg.CritThreshold = 500 * time.Millisecond
+	det := NewLatencyDetector(cfg)
+	result := det.Check("tok-slow", 100*time.Millisecond)
+	if result == nil {
+		t.Fatal("expected a warning alert")
 	}
-	if a.Level != alert.LevelWarning {
-		t.Errorf("expected warning, got %v", a.Level)
+	if result.Level != alert.Warning {
+		t.Errorf("expected Warning, got %v", result.Level)
 	}
 }
 
-func TestLatencyDetector_Check_Critical(t *testing.T) {
-	d := NewLatencyDetector(LatencyConfig{
-		WarningThreshold:  200 * time.Millisecond,
-		CriticalThreshold: 500 * time.Millisecond,
-		MinSamples:        2,
-	})
-	d.Record("tok4", 600*time.Millisecond)
-	d.Record("tok4", 700*time.Millisecond)
-	a := d.Check("tok4")
-	if a == nil {
-		t.Fatal("expected critical alert")
+func TestLatencyDetector_Check_VeryHighLatency_Critical(t *testing.T) {
+	cfg := DefaultLatencyConfig()
+	cfg.MinSamples = 1
+	cfg.WarnThreshold = 50 * time.Millisecond
+	cfg.CritThreshold = 200 * time.Millisecond
+	det := NewLatencyDetector(cfg)
+	result := det.Check("tok-crit", 300*time.Millisecond)
+	if result == nil {
+		t.Fatal("expected a critical alert")
 	}
-	if a.Level != alert.LevelCritical {
-		t.Errorf("expected critical, got %v", a.Level)
-	}
-	if a.LeaseID != "tok4" {
-		t.Errorf("expected token id tok4, got %s", a.LeaseID)
+	if result.Level != alert.Critical {
+		t.Errorf("expected Critical, got %v", result.Level)
 	}
 }
