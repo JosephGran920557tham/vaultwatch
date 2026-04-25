@@ -55,6 +55,17 @@ func TestStore_SaveAndLatest(t *testing.T) {
 	}
 }
 
+func TestStore_SaveOverwritesPrevious(t *testing.T) {
+	store := snapshot.NewStore()
+	first := snapshot.Capture([]alert.Alert{makeAlert("first")})
+	second := snapshot.Capture([]alert.Alert{makeAlert("second")})
+	store.Save(first)
+	store.Save(second)
+	if store.Latest() != second {
+		t.Error("Latest should return the most recently saved snapshot")
+	}
+}
+
 func TestDiff_NilPrev_ReturnsAll(t *testing.T) {
 	next := snapshot.Capture([]alert.Alert{makeAlert("1"), makeAlert("2")})
 	diff := snapshot.Diff(nil, next)
