@@ -64,6 +64,17 @@ func TestEnvelope_Increment_RecordsError(t *testing.T) {
 	}
 }
 
+func TestEnvelope_Increment_NilError(t *testing.T) {
+	env := NewEnvelope("tok", makeEnvelopeAlert(), 3)
+	env.Increment(nil)
+	if env.Attempt != 1 {
+		t.Errorf("expected Attempt=1 after nil-error increment, got %d", env.Attempt)
+	}
+	if env.LastError != nil {
+		t.Errorf("expected LastError to remain nil, got %v", env.LastError)
+	}
+}
+
 func TestEnvelope_Age_IsPositive(t *testing.T) {
 	env := NewEnvelope("tok", makeEnvelopeAlert(), 3)
 	time.Sleep(2 * time.Millisecond)
